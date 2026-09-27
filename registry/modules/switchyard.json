@@ -1,0 +1,8 @@
+{
+  "domain_id": "switchyard",
+  "modules": [
+    { "index": 0, "id": "common", "name": "Common" },
+    { "index": 1, "id": "registry", "name": "Registry" },
+    { "index": 2, "id": "chora", "name": "Chora" }
+  ]
+}

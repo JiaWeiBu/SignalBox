@@ -1,0 +1,51 @@
+[
+  {
+    "index": 0,
+    "id": "normal",
+    "name": "Normal",
+    "description": "Information, pass, or expected operation.",
+    "typical_response": "Log or observe."
+  },
+  {
+    "index": 1,
+    "id": "warning",
+    "name": "Warning",
+    "description": "An unusual condition without actual operational impact.",
+    "typical_response": "Observe and continue."
+  },
+  {
+    "index": 2,
+    "id": "minor",
+    "name": "Minor",
+    "description": "A small defect or degraded behavior that is safe to leave temporarily.",
+    "typical_response": "Repair when convenient."
+  },
+  {
+    "index": 3,
+    "id": "major",
+    "name": "Major",
+    "description": "A significant problem where the system can continue, but repair should generally be prioritized within the day.",
+    "typical_response": "Prioritize repair within the day."
+  },
+  {
+    "index": 4,
+    "id": "critical",
+    "name": "Critical",
+    "description": "The affected component cannot safely continue its normal function or is repeatedly crashing.",
+    "typical_response": "A higher-level system may stop, restart, or isolate the component."
+  },
+  {
+    "index": 5,
+    "id": "emergency",
+    "name": "Emergency",
+    "description": "The highest machine-handled severity; immediate attention is required.",
+    "typical_response": "Higher-level orchestration may pre-empt lower-priority work."
+  },
+  {
+    "index": 6,
+    "id": "human",
+    "name": "Human",
+    "description": "Full autonomous resolution must not proceed; human intervention is required.",
+    "typical_response": "Preserve safe operation and require human intervention."
+  }
+]

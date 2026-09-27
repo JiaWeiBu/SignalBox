@@ -1,0 +1,33 @@
+[
+  {
+    "index": 10,
+    "id": "quincunx",
+    "name": "QUINCUNX common/shared",
+    "description": "Common and shared QUINCUNX infrastructure."
+  },
+  {
+    "index": 11,
+    "id": "furnace",
+    "name": "Furnace"
+  },
+  {
+    "index": 12,
+    "id": "switchyard",
+    "name": "Switchyard"
+  },
+  {
+    "index": 13,
+    "id": "puppeteer",
+    "name": "Puppeteer"
+  },
+  {
+    "index": 14,
+    "id": "airlock",
+    "name": "Airlock"
+  },
+  {
+    "index": 15,
+    "id": "foundry",
+    "name": "Foundry"
+  }
+]

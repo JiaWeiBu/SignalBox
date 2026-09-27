@@ -1,0 +1,6 @@
+{
+  "domain_id": "puppeteer",
+  "modules": [
+    { "index": 0, "id": "common", "name": "Common" }
+  ]
+}
