@@ -12,7 +12,7 @@ Signalbox is generic shared infrastructure. It does not recover services, schedu
 - **Severity**, **Domain**, and **Module** are canonical registry assignments.
 - **DiagnosticReference** points to a capability that may help investigate a condition. Signalbox stores the reference but never executes it.
 
-The Go reference SDK is in `signalbox/`. The language-neutral registry is in `registry/`; its JSON files are canonical and can be consumed by non-Go implementations. No production signal definition has been allocated yet. The code `3C200001` is a format example and a test fixture, not a registered glossary entry.
+The Go reference SDK is in `signalbox/`. The language-neutral registry is in `registry/`; its JSON files are canonical and can be consumed by non-Go implementations. The initial production definitions cover Switchyard Chora. The code `3C200001` remains a format example and test fixture, not a registered glossary entry.
 
 ## Minimal Go example
 
@@ -27,17 +27,17 @@ import (
 )
 
 func main() {
-	registry, err := signalbox.LoadRegistry("registry")
+	registry, err := signalbox.LoadCanonicalRegistry()
 	if err != nil {
 		panic(err)
 	}
 
-	// Replace this illustrative ID with a signal registered in your registry.
+	// Use a symbolic ID registered in the canonical registry.
 	event, err := registry.NewEvent(
-		"your-domain.module.condition",
-		"The condition occurred",
-		"service-main",
-		map[string]any{"request_id": "req-123"},
+		"invalid_chora_capacity",
+		"Chora capacity must be positive",
+		"switchyard.chora",
+		map[string]any{"capacity": -1},
 	)
 	if err != nil {
 		panic(err)
@@ -48,7 +48,7 @@ func main() {
 }
 ```
 
-`Registry.NewEvent` resolves the symbolic ID first, so it cannot create an event for an unregistered definition. The starter registry deliberately has no production signal definitions; glossary additions are made centrally as described in [CONTRIBUTING.md](CONTRIBUTING.md).
+`LoadCanonicalRegistry` loads the JSON files embedded by the Go SDK, so consumers need no registry filesystem path. `Registry.NewEvent` resolves the symbolic ID first, so it cannot create an event for an unregistered definition. Glossary additions are made centrally as described in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Repository layout
 

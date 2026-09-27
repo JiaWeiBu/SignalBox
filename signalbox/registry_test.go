@@ -7,7 +7,7 @@ import (
 )
 
 func TestLoadCanonicalRegistry(t *testing.T) {
-	registry, err := LoadRegistry("../registry")
+	registry, err := LoadCanonicalRegistry()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -40,8 +40,62 @@ func TestLoadCanonicalRegistry(t *testing.T) {
 	if _, ok := registry.ModuleByIndex(11, 2); ok {
 		t.Error("Furnace module 2 should not be assigned")
 	}
-	if len(registry.Signals()) != 0 {
-		t.Fatalf("canonical registry has %d signals, want none in the initial glossary", len(registry.Signals()))
+	wantSignals := map[string]string{
+		"invalid_chora_capacity":    "4C200001",
+		"invalid_reservation_count": "1C200002",
+		"insufficient_free_hedra":   "1C200003",
+		"duplicate_allocation_id":   "2C200004",
+		"allocation_not_found":      "2C200005",
+		"invalid_hedra_state":       "4C200006",
+		"invalid_chora_state":       "4C200007",
+	}
+	seenCodes := make(map[SignalCode]string, len(wantSignals))
+	for id, wantCode := range wantSignals {
+		definition, err := registry.LookupID(id)
+		if err != nil {
+			t.Fatalf("LookupID(%q): %v", id, err)
+		}
+		if got := definition.Code.String(); got != wantCode {
+			t.Errorf("%s code = %s, want %s", id, got, wantCode)
+		}
+		encoded, err := EncodeSignalCode(definition.Severity, definition.Domain.Index, definition.Module.Index, definition.Sequence)
+		if err != nil || encoded != SignalCode(wantCode) {
+			t.Errorf("encoding %s = %s, %v; want %s", id, encoded, err, wantCode)
+		}
+		if previous, exists := seenCodes[definition.Code]; exists {
+			t.Errorf("signals %s and %s collide at %s", previous, id, definition.Code)
+		}
+		seenCodes[definition.Code] = id
+		byCode, err := registry.LookupCode(definition.Code)
+		if err != nil || byCode.ID != id {
+			t.Errorf("LookupCode(%s) = %q, %v; want %q", definition.Code, byCode.ID, err, id)
+		}
+		if definition.Domain.ID != "switchyard" || definition.Domain.Index != 12 || definition.Module.ID != "chora" || definition.Module.Index != 2 {
+			t.Errorf("%s domain/module = %#v/%#v, want Switchyard/Chora", id, definition.Domain, definition.Module)
+		}
+		if len(definition.Diagnostics) != 0 {
+			t.Errorf("%s has diagnostic references %v, want none", id, definition.Diagnostics)
+		}
+	}
+	if got := len(registry.Signals()); got != len(wantSignals) {
+		t.Errorf("canonical registry has %d signals, want %d", got, len(wantSignals))
+	}
+	if _, err := registry.LookupCode("3C200001"); !errors.Is(err, ErrUnknownSignal) {
+		t.Errorf("3C200001 lookup = %v, want unregistered example code", err)
+	}
+}
+
+func TestLoadCanonicalRegistryFromDiskMatchesEmbedded(t *testing.T) {
+	disk, err := LoadRegistry("../registry")
+	if err != nil {
+		t.Fatal(err)
+	}
+	embedded, err := LoadCanonicalRegistry()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := len(disk.Signals()), len(embedded.Signals()); got != want {
+		t.Fatalf("disk registry has %d signals, embedded registry has %d", got, want)
 	}
 }
 

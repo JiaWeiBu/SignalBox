@@ -1,3 +1,67 @@
 {
-  "signals": []
+  "signals": [
+    {
+      "id": "invalid_chora_capacity",
+      "severity": 4,
+      "domain_id": "switchyard",
+      "module_id": "chora",
+      "sequence": 1,
+      "summary": "Invalid Chora capacity",
+      "description": "Chora has a non-positive configured capacity and cannot provide resource seats."
+    },
+    {
+      "id": "invalid_reservation_count",
+      "severity": 1,
+      "domain_id": "switchyard",
+      "module_id": "chora",
+      "sequence": 2,
+      "summary": "Invalid reservation count",
+      "description": "A reservation requested a non-positive number of Hedra."
+    },
+    {
+      "id": "insufficient_free_hedra",
+      "severity": 1,
+      "domain_id": "switchyard",
+      "module_id": "chora",
+      "sequence": 3,
+      "summary": "Insufficient free Hedra",
+      "description": "Chora has fewer free Hedra than the reservation currently requires."
+    },
+    {
+      "id": "duplicate_allocation_id",
+      "severity": 2,
+      "domain_id": "switchyard",
+      "module_id": "chora",
+      "sequence": 4,
+      "summary": "Duplicate allocation ID",
+      "description": "A reservation attempted to use an allocation ID that is already in use."
+    },
+    {
+      "id": "allocation_not_found",
+      "severity": 2,
+      "domain_id": "switchyard",
+      "module_id": "chora",
+      "sequence": 5,
+      "summary": "Allocation not found",
+      "description": "An operation requested an allocation that does not exist in Chora."
+    },
+    {
+      "id": "invalid_hedra_state",
+      "severity": 4,
+      "domain_id": "switchyard",
+      "module_id": "chora",
+      "sequence": 6,
+      "summary": "Invalid Hedra state",
+      "description": "A Hedra lifecycle state or its relationship to allocation ownership violates a Chora invariant."
+    },
+    {
+      "id": "invalid_chora_state",
+      "severity": 4,
+      "domain_id": "switchyard",
+      "module_id": "chora",
+      "sequence": 7,
+      "summary": "Invalid Chora state",
+      "description": "Chora runtime state or internal allocation invariants are inconsistent."
+    }
+  ]
 }

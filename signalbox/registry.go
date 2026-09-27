@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	canonicalregistry "github.com/JiaWeiBu/SignalBox/registry"
 	"io"
 	"io/fs"
 	"os"
@@ -104,6 +105,12 @@ func LoadRegistry(dir string) (*Registry, error) {
 		data.Signals = append(data.Signals, collection.Signals...)
 	}
 	return NewRegistry(data)
+}
+
+// LoadCanonicalRegistry loads the canonical registry JSON shipped with the
+// Signalbox module. Consumers do not need to locate registry files on disk.
+func LoadCanonicalRegistry() (*Registry, error) {
+	return LoadRegistryFS(canonicalregistry.FS, ".")
 }
 
 // LoadRegistryFS loads and validates a registry from an fs.FS subtree.
