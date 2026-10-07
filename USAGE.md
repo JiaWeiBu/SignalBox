@@ -1,6 +1,6 @@
 # Using Signalbox
 
-Signalbox is a separate Go module. A consumer should import its Go package and load or otherwise distribute the canonical registry for the same Signalbox version:
+Signalbox is a separate Go module. A consumer imports its Go package for the shared namespace assignments, schema, validation, runtime registry, events, errors, and logger. Application-specific signal definitions remain in the application's own catalog.
 
 ```go
 import "github.com/JiaWeiBu/SignalBox/signalbox"
@@ -136,6 +136,7 @@ The example decodes to Major, domain 12 (Switchyard), module 2 (Chora), reserved
 - Do not redefine severity numbers locally.
 - Do not redefine domain numbers locally.
 - Do not invent module indices outside the canonical registry.
+- Keep sequence values unique within each domain/module, regardless of severity.
 - Do not manually construct random Signal Codes or select sequences independently. Use a registered definition and its derived `Code`.
 - Do not encode runtime metadata in Signal Codes. Put it in `SignalEvent.Payload`.
 - Do not interpret a module number without its domain.

@@ -135,4 +135,4 @@ The Go API supports two inputs: canonical namespace assignments and an applicati
 
 `LoadCanonicalRegistry` loads Signalbox's canonical namespaces and any Signalbox-owned signal definitions. It does not include application-specific definitions. Applications embed and load their own catalogs, then compose them with canonical namespaces.
 
-Signalbox defines and communicates conditions. It does not own recovery, agent reasoning, queues, scheduling, MCP execution, restart behavior, human notification, device management, remote log shipping, telemetry servers, or persistent databases. Consumers decide how to respond to an event.
+Signalbox provides the schemas and runtime machinery for describing and communicating conditions. It does not own recovery, agent reasoning, queues, scheduling, MCP execution, restart behavior, human notification, device management, remote log shipping, telemetry servers, or persistent databases. Applications define their own signals and decide how to respond to events.
