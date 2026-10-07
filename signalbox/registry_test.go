@@ -77,11 +77,43 @@ func TestLoadCanonicalRegistry(t *testing.T) {
 			t.Errorf("%s has diagnostic references %v, want none", id, definition.Diagnostics)
 		}
 	}
-	if got := len(registry.Signals()); got != len(wantSignals) {
-		t.Errorf("canonical registry has %d signals, want %d", got, len(wantSignals))
+	if got := len(registry.Signals()); got != len(wantSignals)+3 {
+		t.Errorf("canonical registry has %d signals, want %d", got, len(wantSignals)+3)
 	}
 	if _, err := registry.LookupCode("3C200001"); !errors.Is(err, ErrUnknownSignal) {
 		t.Errorf("3C200001 lookup = %v, want unregistered example code", err)
+	}
+}
+
+func TestCanonicalDispatcherSignalsUseMajorSwitchyardCommonAssignments(t *testing.T) {
+	registry, err := LoadCanonicalRegistry()
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := map[string]string{
+		"dispatcher_allocation_offering_mismatch": "3C000001",
+		"dispatcher_provider_executor_missing":    "3C000002",
+		"dispatcher_provider_model_missing":       "3C000003",
+	}
+	for id, wantCode := range want {
+		definition, err := registry.LookupID(id)
+		if err != nil {
+			t.Fatalf("LookupID(%q): %v", id, err)
+		}
+		if definition.Code.String() != wantCode {
+			t.Errorf("%s code = %s, want %s", id, definition.Code, wantCode)
+		}
+		encoded, err := EncodeSignalCode(definition.Severity, definition.Domain.Index, definition.Module.Index, definition.Sequence)
+		if err != nil || encoded != SignalCode(wantCode) {
+			t.Errorf("encoding %s = %s, %v; want %s", id, encoded, err, wantCode)
+		}
+		if definition.Severity != SeverityMajor || definition.Domain.ID != "switchyard" || definition.Module.ID != "common" {
+			t.Errorf("%s assignment = severity %d, domain %q, module %q; want Major/Switchyard/Common", id, definition.Severity, definition.Domain.ID, definition.Module.ID)
+		}
+		byCode, err := registry.LookupCode(SignalCode(wantCode))
+		if err != nil || byCode.ID != id {
+			t.Errorf("LookupCode(%s) = %q, %v; want %q", wantCode, byCode.ID, err, id)
+		}
 	}
 }
 

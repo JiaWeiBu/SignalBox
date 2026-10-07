@@ -62,6 +62,33 @@
       "sequence": 7,
       "summary": "Invalid Chora state",
       "description": "Chora runtime state or internal allocation invariants are inconsistent."
+    },
+    {
+      "id": "dispatcher_allocation_offering_mismatch",
+      "severity": 3,
+      "domain_id": "switchyard",
+      "module_id": "common",
+      "sequence": 1,
+      "summary": "Dispatcher allocation Offering mismatch",
+      "description": "An allocation resolved from an Offering's Chora belongs to a different Offering."
+    },
+    {
+      "id": "dispatcher_provider_executor_missing",
+      "severity": 3,
+      "domain_id": "switchyard",
+      "module_id": "common",
+      "sequence": 2,
+      "summary": "Dispatcher Provider Executor missing",
+      "description": "A registered Offering refers to a Provider without a runtime Executor binding."
+    },
+    {
+      "id": "dispatcher_provider_model_missing",
+      "severity": 3,
+      "domain_id": "switchyard",
+      "module_id": "common",
+      "sequence": 3,
+      "summary": "Dispatcher Provider model missing",
+      "description": "A registered Offering reached execution without its provider-facing model identifier."
     }
   ]
 }
