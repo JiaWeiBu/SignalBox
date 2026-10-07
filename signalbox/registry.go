@@ -53,7 +53,6 @@ type moduleIDKey struct {
 }
 
 type sequenceKey struct {
-	severity    Severity
 	domainIndex uint8
 	moduleIndex uint8
 	sequence    uint32
@@ -111,6 +110,90 @@ func LoadRegistry(dir string) (*Registry, error) {
 // Signalbox module. Consumers do not need to locate registry files on disk.
 func LoadCanonicalRegistry() (*Registry, error) {
 	return LoadRegistryFS(canonicalregistry.FS, ".")
+}
+
+// LoadCanonicalNamespaces loads only the canonical severity, domain, and
+// module assignments embedded by Signalbox. It does not load signal files.
+func LoadCanonicalNamespaces() (NamespaceRegistry, error) {
+	return LoadNamespacesFS(canonicalregistry.FS, ".")
+}
+
+// LoadNamespacesFS reads canonical namespace assignments from an fs.FS subtree.
+func LoadNamespacesFS(filesystem fs.FS, root string) (NamespaceRegistry, error) {
+	var namespaces NamespaceRegistry
+	read := func(name string, target any) error {
+		file := path.Join(root, name)
+		contents, err := fs.ReadFile(filesystem, file)
+		if err != nil {
+			return fmt.Errorf("signalbox: read registry file %q: %w", file, err)
+		}
+		if err := decodeJSON(contents, target); err != nil {
+			return fmt.Errorf("signalbox: decode registry file %q: %w", file, err)
+		}
+		return nil
+	}
+	if err := read("severities.json", &namespaces.Severities); err != nil {
+		return NamespaceRegistry{}, err
+	}
+	if err := read("domains.json", &namespaces.Domains); err != nil {
+		return NamespaceRegistry{}, err
+	}
+	dir := path.Join(root, "modules")
+	entries, err := fs.ReadDir(filesystem, dir)
+	if err != nil {
+		return NamespaceRegistry{}, fmt.Errorf("signalbox: list registry directory %q: %w", dir, err)
+	}
+	for _, entry := range entries {
+		if entry.IsDir() || path.Ext(entry.Name()) != ".json" {
+			continue
+		}
+		var moduleSet ModuleSet
+		if err := read(path.Join("modules", entry.Name()), &moduleSet); err != nil {
+			return NamespaceRegistry{}, err
+		}
+		namespaces.Modules = append(namespaces.Modules, moduleSet)
+	}
+	return namespaces, nil
+}
+
+// LoadSignalCatalogFS reads consumer-owned signal files from the signals
+// directory beneath root. Each JSON file uses the {"signals":[...]} schema.
+func LoadSignalCatalogFS(filesystem fs.FS, root string) (SignalCatalog, error) {
+	var catalog SignalCatalog
+	dir := path.Join(root, "signals")
+	entries, err := fs.ReadDir(filesystem, dir)
+	if err != nil {
+		return SignalCatalog{}, fmt.Errorf("signalbox: list registry directory %q: %w", dir, err)
+	}
+	for _, entry := range entries {
+		if entry.IsDir() || path.Ext(entry.Name()) != ".json" {
+			continue
+		}
+		file := path.Join(dir, entry.Name())
+		contents, err := fs.ReadFile(filesystem, file)
+		if err != nil {
+			return SignalCatalog{}, fmt.Errorf("signalbox: read registry file %q: %w", file, err)
+		}
+		var collection struct {
+			Signals []SignalRecord `json:"signals"`
+		}
+		if err := decodeJSON(contents, &collection); err != nil {
+			return SignalCatalog{}, fmt.Errorf("signalbox: decode registry file %q: %w", file, err)
+		}
+		catalog.Signals = append(catalog.Signals, collection.Signals...)
+	}
+	return catalog, nil
+}
+
+// NewRegistryFromNamespacesAndCatalog validates and composes canonical
+// assignments with a consumer-owned signal catalog.
+func NewRegistryFromNamespacesAndCatalog(namespaces NamespaceRegistry, catalog SignalCatalog) (*Registry, error) {
+	return NewRegistry(RegistryData{
+		Severities: namespaces.Severities,
+		Domains:    namespaces.Domains,
+		Modules:    namespaces.Modules,
+		Signals:    catalog.Signals,
+	})
 }
 
 // LoadRegistryFS loads and validates a registry from an fs.FS subtree.
@@ -347,9 +430,9 @@ func ValidateRegistry(data RegistryData) error {
 			}
 		}
 		if domainOK && moduleOK && signal.Severity.Valid() && signal.Sequence <= MaxSequence {
-			key := sequenceKey{severity: signal.Severity, domainIndex: domain.Index, moduleIndex: module.Index, sequence: signal.Sequence}
+			key := sequenceKey{domainIndex: domain.Index, moduleIndex: module.Index, sequence: signal.Sequence}
 			if previousID, exists := seenSequences[key]; exists {
-				add(fmt.Errorf("signals %q and %q share severity/domain/module/sequence: %w", previousID, signal.ID, ErrDuplicateSequence))
+				add(fmt.Errorf("signals %q and %q share domain/module/sequence: %w", previousID, signal.ID, ErrDuplicateSequence))
 			} else {
 				seenSequences[key] = signal.ID
 			}

@@ -12,7 +12,7 @@ Signalbox is generic shared infrastructure. It does not recover services, schedu
 - **Severity**, **Domain**, and **Module** are canonical registry assignments.
 - **DiagnosticReference** points to a capability that may help investigate a condition. Signalbox stores the reference but never executes it.
 
-The Go reference SDK is in `signalbox/`. The language-neutral registry is in `registry/`; its JSON files are canonical and can be consumed by non-Go implementations. The initial production definitions cover Switchyard Chora. The code `3C200001` remains a format example and test fixture, not a registered glossary entry.
+The Go reference SDK is in `signalbox/`. Signalbox owns severity definitions, global domain and module assignments, the schema, validation, and runtime machinery. Consumers own signal definitions and sequences within their assigned modules. Ten Switchyard definitions remain centrally stored for migration compatibility; consumers can already load their own signal catalogs and compose them with Signalbox's canonical namespaces. The code `3C200001` remains a format example and test fixture, not a registered glossary entry.
 
 ## Minimal Go example
 
@@ -48,7 +48,7 @@ func main() {
 }
 ```
 
-`LoadCanonicalRegistry` loads the JSON files embedded by the Go SDK, so consumers need no registry filesystem path. `Registry.NewEvent` resolves the symbolic ID first, so it cannot create an event for an unregistered definition. Glossary additions are made centrally as described in [CONTRIBUTING.md](CONTRIBUTING.md).
+`LoadCanonicalRegistry` remains the compatibility loader for the full embedded dataset, including the ten centrally stored Switchyard definitions. New consumers can call `LoadCanonicalNamespaces`, embed only their signal JSON, load it with `LoadSignalCatalogFS`, and compose the result with `NewRegistryFromNamespacesAndCatalog`. `Registry.NewEvent` resolves the symbolic ID from prebuilt in-memory maps. See [USAGE.md](USAGE.md) for the local catalog example and [CONTRIBUTING.md](CONTRIBUTING.md) for ownership guidance.
 
 ## Repository layout
 
@@ -57,7 +57,7 @@ registry/
   severities.json
   domains.json
   modules/       domain-scoped module assignments
-  signals/       signal definitions, stored by numeric sequence
+  signals/       current central definitions retained for compatibility
 signalbox/       Go SDK, registry loader, logger, and tests
 README.md        project overview and quick start
 SPEC.md          language-neutral Signalbox contract
@@ -65,4 +65,4 @@ USAGE.md         consumer guidance and Go examples
 CONTRIBUTING.md  canonical registry change process
 ```
 
-The required encodings, identity rules, registry assignments, and validation contract are defined in [SPEC.md](SPEC.md). Severity, domain, module, and signal assignments are canonical in this repository's registry. Consumers must use these definitions rather than maintaining local numeric copies.
+The required encodings, identity rules, namespace assignments, and validation contract are defined in [SPEC.md](SPEC.md). Consumers use Signalbox's shared namespace assignments and maintain their own signal catalogs.

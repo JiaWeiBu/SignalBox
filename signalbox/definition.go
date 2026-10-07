@@ -73,3 +73,16 @@ type RegistryData struct {
 	Modules    []ModuleSet          `json:"module_sets"`
 	Signals    []SignalRecord       `json:"signals"`
 }
+
+// NamespaceRegistry contains the canonical severity, domain, and module
+// assignments used to validate consumer-owned signal catalogs.
+type NamespaceRegistry struct {
+	Severities []SeverityDefinition `json:"severities"`
+	Domains    []Domain             `json:"domains"`
+	Modules    []ModuleSet          `json:"module_sets"`
+}
+
+// SignalCatalog contains signal definitions owned by one consumer.
+type SignalCatalog struct {
+	Signals []SignalRecord `json:"signals"`
+}

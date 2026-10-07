@@ -117,6 +117,42 @@ func TestCanonicalDispatcherSignalsUseMajorSwitchyardCommonAssignments(t *testin
 	}
 }
 
+func TestAllCanonicalSwitchyardSignalCodesRemainStable(t *testing.T) {
+	registry, err := LoadCanonicalRegistry()
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := map[string]struct {
+		severity Severity
+		module   string
+		sequence uint32
+		code     SignalCode
+	}{
+		"invalid_chora_capacity":                  {SeverityCritical, "chora", 1, "4C200001"},
+		"invalid_reservation_count":               {SeverityWarning, "chora", 2, "1C200002"},
+		"insufficient_free_hedra":                 {SeverityWarning, "chora", 3, "1C200003"},
+		"duplicate_allocation_id":                 {SeverityMinor, "chora", 4, "2C200004"},
+		"allocation_not_found":                    {SeverityMinor, "chora", 5, "2C200005"},
+		"invalid_hedra_state":                     {SeverityCritical, "chora", 6, "4C200006"},
+		"invalid_chora_state":                     {SeverityCritical, "chora", 7, "4C200007"},
+		"dispatcher_allocation_offering_mismatch": {SeverityMajor, "common", 1, "3C000001"},
+		"dispatcher_provider_executor_missing":    {SeverityMajor, "common", 2, "3C000002"},
+		"dispatcher_provider_model_missing":       {SeverityMajor, "common", 3, "3C000003"},
+	}
+	if got := len(registry.Signals()); got != len(want) {
+		t.Fatalf("canonical Switchyard signal count = %d, want %d", got, len(want))
+	}
+	for id, expected := range want {
+		definition, err := registry.LookupID(id)
+		if err != nil {
+			t.Fatalf("LookupID(%q): %v", id, err)
+		}
+		if definition.ID != id || definition.Severity != expected.severity || definition.Domain.ID != "switchyard" || definition.Module.ID != expected.module || definition.Sequence != expected.sequence || definition.Code != expected.code {
+			t.Errorf("%s assignment = ID %q, severity %d, domain %q, module %q, sequence %d, code %s; want severity %d, switchyard/%s, sequence %d, code %s", id, definition.ID, definition.Severity, definition.Domain.ID, definition.Module.ID, definition.Sequence, definition.Code, expected.severity, expected.module, expected.sequence, expected.code)
+		}
+	}
+}
+
 func TestLoadCanonicalRegistryFromDiskMatchesEmbedded(t *testing.T) {
 	disk, err := LoadRegistry("../registry")
 	if err != nil {

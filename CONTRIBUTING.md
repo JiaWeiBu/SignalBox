@@ -1,6 +1,6 @@
 # Contributing to Signalbox
 
-Signalbox is the canonical owner of severity, domain, module, and signal assignments. Registry changes affect every consumer and must be reviewed as shared API changes. Never edit Switchyard or another consumer repository to assign codes locally.
+Signalbox owns severity definitions, global domain and module assignments, schema, validation, and runtime machinery. Consumers own signal definitions and sequences within their assigned modules. The ten existing Switchyard definitions remain centrally stored temporarily for migration compatibility. Never edit a consumer repository to assign severity, domain, or module indices locally.
 
 ## Adding a domain
 
@@ -25,8 +25,8 @@ Switchyard v0.1 currently assigns only `0 = common`, `1 = registry`, and `2 = ch
 ## Adding a signal
 
 1. Select an already registered severity, domain, and module. Verify the module belongs to that domain.
-2. Choose an unused integer sequence in 0–16,777,215 within that severity/domain/module namespace. Prefer the next available sequence; never reuse an old identity for a different condition.
-3. Add a `SignalRecord` to a JSON file under `registry/signals/`. Store its stable symbolic ID, numeric severity, `domain_id`, `module_id`, numeric `sequence`, summary, and optional permanent description. Do not write the final Signal Code by hand; it is derived as SDM0EEEE.
+2. Choose an unused integer sequence in 0–16,777,215 within the domain/module namespace, regardless of severity. Prefer the next available sequence; never reuse an old identity for a different condition.
+3. Add a `SignalRecord` to a consumer-owned JSON file using the `{"signals":[...]}` schema. Store its stable symbolic ID, numeric severity, `domain_id`, `module_id`, numeric `sequence`, summary, and optional permanent description. Do not write the final Signal Code by hand; it is derived as SDM0EEEE.
 4. Keep the definition about one permanent condition. Put timestamps, hosts, device or request IDs, resource counts, retry details, and other changing facts in consumer-created SignalEvents.
 5. Add or update a test that proves lookup and code derivation, and update usage/specification text if the new definition is an example.
 
@@ -38,7 +38,7 @@ Add a `diagnostics` item to the signal record with a stable lowercase `capabilit
 
 ## Validate changes
 
-The loader rejects duplicate indices and IDs, duplicate signal sequences and derived codes, unknown references, out-of-range values, non-zero reserved values, malformed identifiers, empty summaries, and malformed diagnostic references. It distinguishes malformed codes from valid codes that use unassigned domain/module indices and from assigned indices without a registered signal.
+`LoadCanonicalNamespaces` loads Signalbox-owned assignments; `LoadSignalCatalogFS` loads consumer-owned definitions; `NewRegistryFromNamespacesAndCatalog` validates and composes them. The compatibility `LoadCanonicalRegistry` still loads all existing central data, including Switchyard definitions. Validation rejects duplicate indices and IDs, duplicate domain/module/sequence values (even across severities), duplicate derived codes, unknown references, out-of-range values, non-zero reserved values, malformed identifiers, empty summaries, and malformed diagnostic references. It distinguishes malformed codes from valid codes that use unassigned domain/module indices and from assigned indices without a registered signal.
 
 From the repository root, run:
 

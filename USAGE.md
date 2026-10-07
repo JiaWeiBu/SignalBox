@@ -8,7 +8,31 @@ import "github.com/JiaWeiBu/SignalBox/signalbox"
 
 The registry is stored as JSON under `registry/`. Use `LoadRegistry(path)` for files or `LoadRegistryFS(fs, root)` when the application embeds or otherwise provides registry files through `fs.FS`.
 
-The initial registry contains canonical severity, domain, and module assignments but no production signal definitions. Consequently, `3C200001` is useful for code-format inspection and tests, but `LookupCode("3C200001")` returns `ErrUnknownSignal`: Switchyard and Chora are assigned, while that sequence has no registered glossary entry. The example signal ID below is illustrative and must exist in the registry before the calls succeed.
+Signalbox embeds canonical severity, domain, and module assignments. Its compatibility loader also includes ten centrally stored Switchyard signal definitions while migration is in progress. New consumers should keep their signal definitions locally and compose them with canonical namespaces. `3C200001` remains useful for code-format inspection and tests; `LookupCode("3C200001")` returns `ErrUnknownSignal` because no glossary entry has that sequence.
+
+## Compose a consumer-owned catalog
+
+Signalbox owns severity definitions, domain assignments, module assignments, schema, validation, and runtime machinery. The consumer owns signal definitions and sequence choices within its assigned modules. Embed only the consumer's signal JSON; do not copy the namespace files:
+
+```go
+//go:embed signaldefs/signals/*.json
+var signalFiles embed.FS
+
+namespaces, err := signalbox.LoadCanonicalNamespaces()
+if err != nil {
+	return err
+}
+catalog, err := signalbox.LoadSignalCatalogFS(signalFiles, "signaldefs")
+if err != nil {
+	return err
+}
+registry, err := signalbox.NewRegistryFromNamespacesAndCatalog(namespaces, catalog)
+if err != nil {
+	return err
+}
+```
+
+Each local JSON file has the existing `{"signals":[...]}` schema. The catalog loader reads only signal files. Validation and code derivation happen during composition; subsequent event creation and lookups use in-memory maps.
 
 ## Look up a signal
 
@@ -121,4 +145,4 @@ The example decodes to Major, domain 12 (Switchyard), module 2 (Chora), reserved
 - Do not interpret a module number without its domain.
 - Do not assume a syntactically valid code has a registered definition.
 
-Severity, domain, module, and signal assignments are canonical in the Signalbox registry. A future Python SDK or other binding must consume the same assignments and follow [SPEC.md](SPEC.md), not create local copies.
+Severity, domain, and module assignments are canonical in Signalbox. Consumers maintain their own signal catalogs and follow [SPEC.md](SPEC.md) for validation and code derivation; other SDKs should use the same contract.

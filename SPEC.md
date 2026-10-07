@@ -36,7 +36,7 @@ Each character encodes one integer in 0–63. Case is significant. No other char
 
 The last four characters form one unsigned base-64 integer, most significant character first. The allowed numeric range is 0 through 16,777,215 (`64^4 - 1`). Sequence `1` is encoded as `0001`; the maximum sequence is `____`.
 
-Sequence uniqueness is scoped by **severity + domain + module** because those three values and the sequence together form the code. Registry files store the integer, never a manually encoded four-character sequence.
+Sequence uniqueness is scoped by **domain + module**, regardless of severity. Although severity contributes to the derived Signal Code, consumers share one sequence space within each assigned module. Registry files store the integer, never a manually encoded four-character sequence.
 
 ### Severity
 
@@ -112,7 +112,7 @@ Runtime metadata belongs in SignalEvent. It must never be encoded into the Signa
 
 ## 4. Registry and validation
 
-The checked-in registry is the canonical source for severity, domain, module, and signal assignments. The v0.1 files use JSON so the Go SDK can load them with the standard library and other languages can consume the same portable data directly. JSON is the registry file format; the Go SDK does not introduce another authoritative copy.
+Signalbox owns severity definitions, global domain and module assignments, the JSON schema, validation, and runtime machinery. Consumers own their signal definitions and sequences within assigned modules. The v0.1 files use JSON so the Go SDK can load them with the standard library and other languages can consume the same portable data directly. JSON is the registry file format; the Go SDK does not introduce another authoritative copy. Ten Switchyard signal definitions remain centrally stored temporarily for migration compatibility.
 
 Registry validation must reject:
 
@@ -120,7 +120,7 @@ Registry validation must reject:
 - duplicate domain indices or IDs;
 - duplicate module indices or IDs within a domain;
 - duplicate signal IDs;
-- duplicate sequence values within a severity/domain/module namespace;
+- duplicate sequence values within a domain/module namespace, even across severities;
 - duplicate derived Signal Codes;
 - indices outside 0–63, severities outside 0–6, or sequences outside 0–16,777,215;
 - any non-zero reserved value;
@@ -129,6 +129,10 @@ Registry validation must reject:
 
 Code-format validation is distinct from registry lookup. A syntactically valid code may refer to an unassigned domain, an unassigned module within an assigned domain, or an unregistered sequence within assigned indices. Implementations should report those separately from malformed characters, length, severity, or reserved-field errors.
 
-## 5. Ownership boundaries
+## 5. Registry composition and ownership
+
+The Go API supports two inputs: canonical namespace assignments and a consumer-owned signal catalog. `LoadCanonicalNamespaces` reads only severity, domain, and module files embedded by Signalbox. `LoadSignalCatalogFS` reads signal definition files from an `fs.FS` subtree using the `{"signals":[...]}` schema. `NewRegistryFromNamespacesAndCatalog` validates and composes them into an in-memory `Registry`. Event creation and lookups use only this constructed registry; they do not read files or parse JSON.
+
+`LoadCanonicalRegistry` remains a compatibility API and continues to load the full embedded dataset, including the centrally stored Switchyard definitions, while those definitions are migrated.
 
 Signalbox defines and communicates conditions. It does not own recovery, agent reasoning, queues, scheduling, MCP execution, restart behavior, human notification, device management, remote log shipping, telemetry servers, or persistent databases. Consumers decide how to respond to an event.
