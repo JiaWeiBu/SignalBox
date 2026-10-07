@@ -22,7 +22,7 @@ func TestTwoLevelRegistryComposition(t *testing.T) {
 	}
 
 	filesystem := testingfs.MapFS{
-		"app/signals/catalog.json": &testingfs.MapFile{Data: []byte(`{"signals":[{"id":"app.local_condition","severity":2,"domain_id":"quincunx","module_id":"common","sequence":1,"summary":"Local condition"}]}`)},
+		"app/signals/catalog.json": &testingfs.MapFile{Data: []byte(`{"signals":[{"id":"app.local_condition","severity":2,"domain_id":"switchyard","module_id":"common","sequence":1,"summary":"Local condition"}]}`)},
 		// Catalog loading must not require or parse these namespace files.
 		"app/severities.json": &testingfs.MapFile{Data: []byte(`not json`)},
 	}
@@ -42,7 +42,7 @@ func TestTwoLevelRegistryComposition(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got, want := definition.Code, SignalCode("2A000001"); got != want {
+	if got, want := definition.Code, SignalCode("2C000001"); got != want {
 		t.Fatalf("derived code = %s, want %s", got, want)
 	}
 	byCode, err := registry.LookupCode(definition.Code)
@@ -90,7 +90,7 @@ func withSignal(signal SignalRecord, mutate func(*SignalRecord)) SignalRecord {
 	return signal
 }
 
-func TestCanonicalNamespacesExcludeSignalsAndCompatibilityLoaderKeepsThem(t *testing.T) {
+func TestCanonicalRegistryContainsNoApplicationSignals(t *testing.T) {
 	namespaces, err := LoadCanonicalNamespaces()
 	if err != nil {
 		t.Fatal(err)
@@ -103,11 +103,11 @@ func TestCanonicalNamespacesExcludeSignalsAndCompatibilityLoaderKeepsThem(t *tes
 		t.Fatalf("namespace-only registry has %d signals, want 0", got)
 	}
 
-	legacy, err := LoadCanonicalRegistry()
+	canonical, err := LoadCanonicalRegistry()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := len(legacy.Signals()); got != 10 {
-		t.Fatalf("compatibility loader has %d signals, want all 10 current Switchyard signals", got)
+	if got := len(canonical.Signals()); got != 0 {
+		t.Fatalf("canonical registry has %d application signals, want none", got)
 	}
 }

@@ -1,6 +1,6 @@
 # Contributing to Signalbox
 
-Signalbox owns severity definitions, global domain and module assignments, schema, validation, and runtime machinery. Consumers own signal definitions and sequences within their assigned modules. The ten existing Switchyard definitions remain centrally stored temporarily for migration compatibility. Never edit a consumer repository to assign severity, domain, or module indices locally.
+Signalbox globally owns severities, domains, modules, schema, validation, runtime registry machinery, `SignalEvent`, `SignalError`, and the logger. Applications own their signal IDs, severity choices, sequences within assigned modules, descriptions, and payload contracts. Never edit a consumer repository to assign severity, domain, or module indices locally, and do not submit application-specific definitions to Signalbox's canonical signal data.
 
 ## Adding a domain
 
@@ -38,7 +38,7 @@ Add a `diagnostics` item to the signal record with a stable lowercase `capabilit
 
 ## Validate changes
 
-`LoadCanonicalNamespaces` loads Signalbox-owned assignments; `LoadSignalCatalogFS` loads consumer-owned definitions; `NewRegistryFromNamespacesAndCatalog` validates and composes them. The compatibility `LoadCanonicalRegistry` still loads all existing central data, including Switchyard definitions. Validation rejects duplicate indices and IDs, duplicate domain/module/sequence values (even across severities), duplicate derived codes, unknown references, out-of-range values, non-zero reserved values, malformed identifiers, empty summaries, and malformed diagnostic references. It distinguishes malformed codes from valid codes that use unassigned domain/module indices and from assigned indices without a registered signal.
+`LoadCanonicalNamespaces` loads Signalbox-owned assignments; `LoadSignalCatalogFS` loads application-owned definitions; `NewRegistryFromNamespacesAndCatalog` validates and composes them. `LoadCanonicalRegistry` loads only Signalbox's canonical namespaces and Signalbox-owned definitions. Validation rejects duplicate indices and IDs, duplicate domain/module/sequence values (even across severities), duplicate derived codes, unknown references, out-of-range values, non-zero reserved values, malformed identifiers, empty summaries, and malformed diagnostic references. It distinguishes malformed codes from valid codes that use unassigned domain/module indices and from assigned indices without a registered signal.
 
 From the repository root, run:
 

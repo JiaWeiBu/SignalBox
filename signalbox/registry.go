@@ -106,8 +106,9 @@ func LoadRegistry(dir string) (*Registry, error) {
 	return NewRegistry(data)
 }
 
-// LoadCanonicalRegistry loads the canonical registry JSON shipped with the
-// Signalbox module. Consumers do not need to locate registry files on disk.
+// LoadCanonicalRegistry loads Signalbox's canonical namespaces and any
+// Signalbox-owned definitions embedded with the module. Application-owned
+// signal catalogs must be loaded and composed separately.
 func LoadCanonicalRegistry() (*Registry, error) {
 	return LoadRegistryFS(canonicalregistry.FS, ".")
 }

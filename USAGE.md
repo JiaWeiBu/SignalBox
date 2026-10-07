@@ -8,7 +8,7 @@ import "github.com/JiaWeiBu/SignalBox/signalbox"
 
 The registry is stored as JSON under `registry/`. Use `LoadRegistry(path)` for files or `LoadRegistryFS(fs, root)` when the application embeds or otherwise provides registry files through `fs.FS`.
 
-Signalbox embeds canonical severity, domain, and module assignments. Its compatibility loader also includes ten centrally stored Switchyard signal definitions while migration is in progress. New consumers should keep their signal definitions locally and compose them with canonical namespaces. `3C200001` remains useful for code-format inspection and tests; `LookupCode("3C200001")` returns `ErrUnknownSignal` because no glossary entry has that sequence.
+`LoadCanonicalRegistry()` returns Signalbox's canonical namespace assignments and any Signalbox-owned signal definitions. It does not bundle application-specific definitions. Applications should embed their own signal JSON and compose it with `LoadCanonicalNamespaces()`. `3C200001` is a format example; a registry without a definition at that code returns `ErrUnknownSignal`.
 
 ## Compose a consumer-owned catalog
 
@@ -39,7 +39,7 @@ Each local JSON file has the existing `{"signals":[...]}` schema. The catalog lo
 Look up by stable symbolic ID when the signal identity is known by name:
 
 ```go
-definition, err := registry.LookupID("switchyard.chora.insufficient_capacity")
+definition, err := registry.LookupID("myapp.local_condition")
 if err != nil {
 	return err
 }
@@ -77,14 +77,10 @@ Prefer `Registry.NewEvent` with a registered symbolic ID. It resolves the defini
 
 ```go
 event, err := registry.NewEvent(
-	"switchyard.chora.insufficient_capacity",
-	"Insufficient Hedra capacity",
-	"switchyard-main",
-	map[string]any{
-		"requested":   6,
-		"available":   4,
-		"offering_id": "groq-qwen",
-	},
+	"myapp.local_condition",
+	"A local condition occurred",
+	"myapp",
+	nil,
 )
 if err != nil {
 	return err

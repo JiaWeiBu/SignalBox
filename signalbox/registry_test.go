@@ -40,116 +40,62 @@ func TestLoadCanonicalRegistry(t *testing.T) {
 	if _, ok := registry.ModuleByIndex(11, 2); ok {
 		t.Error("Furnace module 2 should not be assigned")
 	}
-	wantSignals := map[string]string{
-		"invalid_chora_capacity":    "4C200001",
-		"invalid_reservation_count": "1C200002",
-		"insufficient_free_hedra":   "1C200003",
-		"duplicate_allocation_id":   "2C200004",
-		"allocation_not_found":      "2C200005",
-		"invalid_hedra_state":       "4C200006",
-		"invalid_chora_state":       "4C200007",
+	if got := len(registry.Signals()); got != 0 {
+		t.Errorf("canonical registry has %d application signals, want none", got)
 	}
-	seenCodes := make(map[SignalCode]string, len(wantSignals))
-	for id, wantCode := range wantSignals {
-		definition, err := registry.LookupID(id)
-		if err != nil {
-			t.Fatalf("LookupID(%q): %v", id, err)
+	for _, id := range switchyardSignalIDs {
+		if _, err := registry.LookupID(id); !errors.Is(err, ErrUnknownSignal) {
+			t.Errorf("LookupID(%q) = %v, want ErrUnknownSignal", id, err)
 		}
-		if got := definition.Code.String(); got != wantCode {
-			t.Errorf("%s code = %s, want %s", id, got, wantCode)
-		}
-		encoded, err := EncodeSignalCode(definition.Severity, definition.Domain.Index, definition.Module.Index, definition.Sequence)
-		if err != nil || encoded != SignalCode(wantCode) {
-			t.Errorf("encoding %s = %s, %v; want %s", id, encoded, err, wantCode)
-		}
-		if previous, exists := seenCodes[definition.Code]; exists {
-			t.Errorf("signals %s and %s collide at %s", previous, id, definition.Code)
-		}
-		seenCodes[definition.Code] = id
-		byCode, err := registry.LookupCode(definition.Code)
-		if err != nil || byCode.ID != id {
-			t.Errorf("LookupCode(%s) = %q, %v; want %q", definition.Code, byCode.ID, err, id)
-		}
-		if definition.Domain.ID != "switchyard" || definition.Domain.Index != 12 || definition.Module.ID != "chora" || definition.Module.Index != 2 {
-			t.Errorf("%s domain/module = %#v/%#v, want Switchyard/Chora", id, definition.Domain, definition.Module)
-		}
-		if len(definition.Diagnostics) != 0 {
-			t.Errorf("%s has diagnostic references %v, want none", id, definition.Diagnostics)
-		}
-	}
-	if got := len(registry.Signals()); got != len(wantSignals)+3 {
-		t.Errorf("canonical registry has %d signals, want %d", got, len(wantSignals)+3)
 	}
 	if _, err := registry.LookupCode("3C200001"); !errors.Is(err, ErrUnknownSignal) {
 		t.Errorf("3C200001 lookup = %v, want unregistered example code", err)
 	}
 }
 
-func TestCanonicalDispatcherSignalsUseMajorSwitchyardCommonAssignments(t *testing.T) {
-	registry, err := LoadCanonicalRegistry()
-	if err != nil {
-		t.Fatal(err)
-	}
-	want := map[string]string{
-		"dispatcher_allocation_offering_mismatch": "3C000001",
-		"dispatcher_provider_executor_missing":    "3C000002",
-		"dispatcher_provider_model_missing":       "3C000003",
-	}
-	for id, wantCode := range want {
-		definition, err := registry.LookupID(id)
-		if err != nil {
-			t.Fatalf("LookupID(%q): %v", id, err)
-		}
-		if definition.Code.String() != wantCode {
-			t.Errorf("%s code = %s, want %s", id, definition.Code, wantCode)
-		}
-		encoded, err := EncodeSignalCode(definition.Severity, definition.Domain.Index, definition.Module.Index, definition.Sequence)
-		if err != nil || encoded != SignalCode(wantCode) {
-			t.Errorf("encoding %s = %s, %v; want %s", id, encoded, err, wantCode)
-		}
-		if definition.Severity != SeverityMajor || definition.Domain.ID != "switchyard" || definition.Module.ID != "common" {
-			t.Errorf("%s assignment = severity %d, domain %q, module %q; want Major/Switchyard/Common", id, definition.Severity, definition.Domain.ID, definition.Module.ID)
-		}
-		byCode, err := registry.LookupCode(SignalCode(wantCode))
-		if err != nil || byCode.ID != id {
-			t.Errorf("LookupCode(%s) = %q, %v; want %q", wantCode, byCode.ID, err, id)
-		}
-	}
+var switchyardSignalIDs = []string{
+	"invalid_chora_capacity",
+	"invalid_reservation_count",
+	"insufficient_free_hedra",
+	"duplicate_allocation_id",
+	"allocation_not_found",
+	"invalid_hedra_state",
+	"invalid_chora_state",
+	"dispatcher_allocation_offering_mismatch",
+	"dispatcher_provider_executor_missing",
+	"dispatcher_provider_model_missing",
 }
 
-func TestAllCanonicalSwitchyardSignalCodesRemainStable(t *testing.T) {
-	registry, err := LoadCanonicalRegistry()
+func TestLoadCanonicalNamespacesRetainsSwitchyardAssignments(t *testing.T) {
+	namespaces, err := LoadCanonicalNamespaces()
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := map[string]struct {
-		severity Severity
-		module   string
-		sequence uint32
-		code     SignalCode
-	}{
-		"invalid_chora_capacity":                  {SeverityCritical, "chora", 1, "4C200001"},
-		"invalid_reservation_count":               {SeverityWarning, "chora", 2, "1C200002"},
-		"insufficient_free_hedra":                 {SeverityWarning, "chora", 3, "1C200003"},
-		"duplicate_allocation_id":                 {SeverityMinor, "chora", 4, "2C200004"},
-		"allocation_not_found":                    {SeverityMinor, "chora", 5, "2C200005"},
-		"invalid_hedra_state":                     {SeverityCritical, "chora", 6, "4C200006"},
-		"invalid_chora_state":                     {SeverityCritical, "chora", 7, "4C200007"},
-		"dispatcher_allocation_offering_mismatch": {SeverityMajor, "common", 1, "3C000001"},
-		"dispatcher_provider_executor_missing":    {SeverityMajor, "common", 2, "3C000002"},
-		"dispatcher_provider_model_missing":       {SeverityMajor, "common", 3, "3C000003"},
-	}
-	if got := len(registry.Signals()); got != len(want) {
-		t.Fatalf("canonical Switchyard signal count = %d, want %d", got, len(want))
-	}
-	for id, expected := range want {
-		definition, err := registry.LookupID(id)
-		if err != nil {
-			t.Fatalf("LookupID(%q): %v", id, err)
+	domainFound := false
+	for _, domain := range namespaces.Domains {
+		if domain.ID == "switchyard" && domain.Index == 12 {
+			domainFound = true
 		}
-		if definition.ID != id || definition.Severity != expected.severity || definition.Domain.ID != "switchyard" || definition.Module.ID != expected.module || definition.Sequence != expected.sequence || definition.Code != expected.code {
-			t.Errorf("%s assignment = ID %q, severity %d, domain %q, module %q, sequence %d, code %s; want severity %d, switchyard/%s, sequence %d, code %s", id, definition.ID, definition.Severity, definition.Domain.ID, definition.Module.ID, definition.Sequence, definition.Code, expected.severity, expected.module, expected.sequence, expected.code)
+	}
+	if !domainFound {
+		t.Fatal("canonical namespaces do not include Switchyard domain index 12")
+	}
+	wantModules := map[string]uint8{"common": 0, "registry": 1, "chora": 2}
+	for _, set := range namespaces.Modules {
+		if set.DomainID != "switchyard" {
+			continue
 		}
+		for _, module := range set.Modules {
+			if want, ok := wantModules[module.ID]; ok {
+				if module.Index != want {
+					t.Errorf("Switchyard module %q index = %d, want %d", module.ID, module.Index, want)
+				}
+				delete(wantModules, module.ID)
+			}
+		}
+	}
+	if len(wantModules) != 0 {
+		t.Errorf("missing Switchyard module assignments: %v", wantModules)
 	}
 }
 
@@ -192,18 +138,18 @@ func TestRegistryLookupsAndUnknownAssignments(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	byCode, err := registry.LookupCode("3C200001")
+	byCode, err := registry.LookupCode("3A000001")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if byCode.ID != "switchyard.chora.insufficient_capacity" || byCode.Domain.Name != "Switchyard" || byCode.Module.Name != "Chora" {
+	if byCode.ID != "sample.local_condition" || byCode.Domain.Name != "QUINCUNX common/shared" || byCode.Module.Name != "Common" {
 		t.Fatalf("lookup by code returned %#v", byCode)
 	}
 	byID, err := registry.LookupID(byCode.ID)
 	if err != nil || byID.Code != byCode.Code {
 		t.Fatalf("lookup by ID = %#v, %v", byID, err)
 	}
-	event, err := registry.NewEvent(byCode.ID, "Insufficient capacity", "switchyard-main", map[string]any{"requested": 6})
+	event, err := registry.NewEvent(byCode.ID, "Local condition", "sample-app", nil)
 	if err != nil || event.Code != byCode.Code || event.Timestamp.IsZero() {
 		t.Fatalf("NewEvent = %#v, %v", event, err)
 	}
@@ -217,16 +163,16 @@ func TestRegistryLookupsAndUnknownAssignments(t *testing.T) {
 		code string
 		want error
 	}{
-		{code: "3D200001", want: ErrUnassignedDomain},
-		{code: "3C300001", want: ErrUnassignedModule},
-		{code: "3C200002", want: ErrUnknownSignal},
+		{code: "3B000001", want: ErrUnassignedDomain},
+		{code: "3A100001", want: ErrUnassignedModule},
+		{code: "3A000002", want: ErrUnknownSignal},
 		{code: "3C2*0001", want: ErrMalformedCode},
 	} {
 		if _, err := registry.LookupCode(SignalCode(test.code)); !errors.Is(err, test.want) {
 			t.Errorf("LookupCode(%q) = %v, want %v", test.code, err, test.want)
 		}
 	}
-	if err := registry.ValidateCode("3C200002"); err != nil {
+	if err := registry.ValidateCode("3A000002"); err != nil {
 		t.Errorf("assigned domain/module with unknown sequence should pass ValidateCode: %v", err)
 	}
 }
@@ -254,28 +200,28 @@ func TestRegistryValidationRejectsCollisionsAndInvalidValues(t *testing.T) {
 		{
 			name: "duplicate domain index",
 			mutate: func(data *RegistryData) {
-				data.Domains = append(data.Domains, Domain{Index: 12, ID: "other", Name: "Other"})
+				data.Domains = append(data.Domains, Domain{Index: 10, ID: "other", Name: "Other"})
 			},
 			want: ErrDuplicateIndex,
 		},
 		{
 			name: "duplicate domain ID",
 			mutate: func(data *RegistryData) {
-				data.Domains = append(data.Domains, Domain{Index: 13, ID: "switchyard", Name: "Other"})
+				data.Domains = append(data.Domains, Domain{Index: 11, ID: "quincunx", Name: "Other"})
 			},
 			want: ErrDuplicateID,
 		},
 		{
 			name: "duplicate module index",
 			mutate: func(data *RegistryData) {
-				data.Modules[0].Modules = append(data.Modules[0].Modules, Module{Index: 2, ID: "other", Name: "Other"})
+				data.Modules[0].Modules = append(data.Modules[0].Modules, Module{Index: 0, ID: "other", Name: "Other"})
 			},
 			want: ErrDuplicateIndex,
 		},
 		{
 			name: "duplicate module ID",
 			mutate: func(data *RegistryData) {
-				data.Modules[0].Modules = append(data.Modules[0].Modules, Module{Index: 3, ID: "chora", Name: "Other"})
+				data.Modules[0].Modules = append(data.Modules[0].Modules, Module{Index: 1, ID: "common", Name: "Other"})
 			},
 			want: ErrDuplicateID,
 		},
@@ -283,7 +229,7 @@ func TestRegistryValidationRejectsCollisionsAndInvalidValues(t *testing.T) {
 			name: "duplicate signal sequence and code",
 			mutate: func(data *RegistryData) {
 				duplicate := data.Signals[0]
-				duplicate.ID = "switchyard.chora.same_code"
+				duplicate.ID = "sample.same_code"
 				data.Signals = append(data.Signals, duplicate)
 			},
 			want: ErrDuplicateSequence,
@@ -347,17 +293,15 @@ func validRegistryData() RegistryData {
 	}
 	return RegistryData{
 		Severities: severities,
-		Domains:    []Domain{{Index: 12, ID: "switchyard", Name: "Switchyard"}},
-		Modules: []ModuleSet{{DomainID: "switchyard", Modules: []Module{
+		Domains:    []Domain{{Index: 10, ID: "quincunx", Name: "QUINCUNX common/shared"}},
+		Modules: []ModuleSet{{DomainID: "quincunx", Modules: []Module{
 			{Index: 0, ID: "common", Name: "Common"},
-			{Index: 1, ID: "registry", Name: "Registry"},
-			{Index: 2, ID: "chora", Name: "Chora"},
 		}}},
 		Signals: []SignalRecord{{
-			ID: "switchyard.chora.insufficient_capacity", Severity: SeverityMajor,
-			DomainID: "switchyard", ModuleID: "chora", Sequence: 1,
-			Summary:     "Insufficient Chora capacity",
-			Diagnostics: []DiagnosticReference{{CapabilityID: "switchyard.chora.inspect", Purpose: "Inspect current Chora capacity and allocation state."}},
+			ID: "sample.local_condition", Severity: SeverityMajor,
+			DomainID: "quincunx", ModuleID: "common", Sequence: 1,
+			Summary:     "Local condition",
+			Diagnostics: []DiagnosticReference{{CapabilityID: "sample.inspect", Purpose: "Inspect the sample condition."}},
 		}},
 	}
 }

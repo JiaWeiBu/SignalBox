@@ -112,7 +112,7 @@ Runtime metadata belongs in SignalEvent. It must never be encoded into the Signa
 
 ## 4. Registry and validation
 
-Signalbox owns severity definitions, global domain and module assignments, the JSON schema, validation, and runtime machinery. Consumers own their signal definitions and sequences within assigned modules. The v0.1 files use JSON so the Go SDK can load them with the standard library and other languages can consume the same portable data directly. JSON is the registry file format; the Go SDK does not introduce another authoritative copy. Ten Switchyard signal definitions remain centrally stored temporarily for migration compatibility.
+Signalbox globally owns severity definitions, domain and module assignments, the JSON schema, validation, runtime registry machinery, `SignalEvent`, `SignalError`, and the logger. Applications own application-specific signal IDs, severity choices, sequences within assigned modules, descriptions, and payload contracts. The v0.1 files use JSON so the Go SDK can load them with the standard library and other languages can consume the same portable data directly. JSON is the registry file format; the Go SDK does not introduce another authoritative copy.
 
 Registry validation must reject:
 
@@ -131,8 +131,8 @@ Code-format validation is distinct from registry lookup. A syntactically valid c
 
 ## 5. Registry composition and ownership
 
-The Go API supports two inputs: canonical namespace assignments and a consumer-owned signal catalog. `LoadCanonicalNamespaces` reads only severity, domain, and module files embedded by Signalbox. `LoadSignalCatalogFS` reads signal definition files from an `fs.FS` subtree using the `{"signals":[...]}` schema. `NewRegistryFromNamespacesAndCatalog` validates and composes them into an in-memory `Registry`. Event creation and lookups use only this constructed registry; they do not read files or parse JSON.
+The Go API supports two inputs: canonical namespace assignments and an application-owned signal catalog. `LoadCanonicalNamespaces` reads only severity, domain, and module files embedded by Signalbox. `LoadSignalCatalogFS` reads signal definition files from an `fs.FS` subtree using the `{"signals":[...]}` schema. `NewRegistryFromNamespacesAndCatalog` validates and composes them into an in-memory `Registry`. Event creation and lookups use only this constructed registry; they do not read files or parse JSON.
 
-`LoadCanonicalRegistry` remains a compatibility API and continues to load the full embedded dataset, including the centrally stored Switchyard definitions, while those definitions are migrated.
+`LoadCanonicalRegistry` loads Signalbox's canonical namespaces and any Signalbox-owned signal definitions. It does not include application-specific definitions. Applications embed and load their own catalogs, then compose them with canonical namespaces.
 
 Signalbox defines and communicates conditions. It does not own recovery, agent reasoning, queues, scheduling, MCP execution, restart behavior, human notification, device management, remote log shipping, telemetry servers, or persistent databases. Consumers decide how to respond to an event.

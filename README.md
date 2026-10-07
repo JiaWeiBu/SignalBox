@@ -12,7 +12,7 @@ Signalbox is generic shared infrastructure. It does not recover services, schedu
 - **Severity**, **Domain**, and **Module** are canonical registry assignments.
 - **DiagnosticReference** points to a capability that may help investigate a condition. Signalbox stores the reference but never executes it.
 
-The Go reference SDK is in `signalbox/`. Signalbox owns severity definitions, global domain and module assignments, the schema, validation, and runtime machinery. Consumers own signal definitions and sequences within their assigned modules. Ten Switchyard definitions remain centrally stored for migration compatibility; consumers can already load their own signal catalogs and compose them with Signalbox's canonical namespaces. The code `3C200001` remains a format example and test fixture, not a registered glossary entry.
+The Go reference SDK is in `signalbox/`. Signalbox owns global severity definitions, domain and module assignments, the schema, validation, runtime registry machinery, `SignalEvent`, `SignalError`, and the logger. Applications own their signal IDs, severity choices, sequences within assigned modules, descriptions, and payload contracts. The code `3C200001` remains a format example, not a registered glossary entry.
 
 ## Minimal Go example
 
@@ -20,24 +20,36 @@ The Go reference SDK is in `signalbox/`. Signalbox owns severity definitions, gl
 package main
 
 import (
+	"embed"
 	"fmt"
 	"os"
 
 	"github.com/JiaWeiBu/SignalBox/signalbox"
 )
 
+//go:embed signaldefs/signals/*.json
+var signalFiles embed.FS
+
 func main() {
-	registry, err := signalbox.LoadCanonicalRegistry()
+	namespaces, err := signalbox.LoadCanonicalNamespaces()
+	if err != nil {
+		panic(err)
+	}
+	catalog, err := signalbox.LoadSignalCatalogFS(signalFiles, "signaldefs")
+	if err != nil {
+		panic(err)
+	}
+	registry, err := signalbox.NewRegistryFromNamespacesAndCatalog(namespaces, catalog)
 	if err != nil {
 		panic(err)
 	}
 
-	// Use a symbolic ID registered in the canonical registry.
+	// Use a symbolic ID registered in this application's catalog.
 	event, err := registry.NewEvent(
-		"invalid_chora_capacity",
-		"Chora capacity must be positive",
-		"switchyard.chora",
-		map[string]any{"capacity": -1},
+		"myapp.local_condition",
+		"A local condition occurred",
+		"myapp",
+		nil,
 	)
 	if err != nil {
 		panic(err)
@@ -48,7 +60,7 @@ func main() {
 }
 ```
 
-`LoadCanonicalRegistry` remains the compatibility loader for the full embedded dataset, including the ten centrally stored Switchyard definitions. New consumers can call `LoadCanonicalNamespaces`, embed only their signal JSON, load it with `LoadSignalCatalogFS`, and compose the result with `NewRegistryFromNamespacesAndCatalog`. `Registry.NewEvent` resolves the symbolic ID from prebuilt in-memory maps. See [USAGE.md](USAGE.md) for the local catalog example and [CONTRIBUTING.md](CONTRIBUTING.md) for ownership guidance.
+`LoadCanonicalRegistry` loads Signalbox's canonical namespaces and any Signalbox-owned definitions; it does not bundle application-specific signal catalogs. Applications embed their own signal JSON, load it with `LoadSignalCatalogFS`, and compose it with `LoadCanonicalNamespaces` using `NewRegistryFromNamespacesAndCatalog`. `Registry.NewEvent` resolves IDs from prebuilt in-memory maps. See [USAGE.md](USAGE.md) for details.
 
 ## Repository layout
 
@@ -57,7 +69,7 @@ registry/
   severities.json
   domains.json
   modules/       domain-scoped module assignments
-  signals/       current central definitions retained for compatibility
+  signals/       Signalbox-owned signal definitions, if any
 signalbox/       Go SDK, registry loader, logger, and tests
 README.md        project overview and quick start
 SPEC.md          language-neutral Signalbox contract
@@ -65,4 +77,4 @@ USAGE.md         consumer guidance and Go examples
 CONTRIBUTING.md  canonical registry change process
 ```
 
-The required encodings, identity rules, namespace assignments, and validation contract are defined in [SPEC.md](SPEC.md). Consumers use Signalbox's shared namespace assignments and maintain their own signal catalogs.
+The required encodings, identity rules, namespace assignments, ownership rules, and validation contract are defined in [SPEC.md](SPEC.md). Signal sequences are unique within each domain/module regardless of severity.
